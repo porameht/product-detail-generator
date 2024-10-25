@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   const { languages, imageUrl, model, length, tone } = result.data;
 
   let descriptions;
-  let productName;
+  let productNames;
   let rawResponse;
   try {
     const res = await together.chat.completions.create({
@@ -43,17 +43,17 @@ export async function POST(req: Request) {
           content: [
             {
               type: "text",
-              text: `Given this product image, return JSON with a product name and Amazon-like ${length} sales product descriptions in a ${tone} tone. Focus primarily on Thai language, but if other languages are specified, include them as well. The languages are: ${languages
+              text: `Given this product image, return JSON with product names and Amazon-like ${length} sales product descriptions in a ${tone} tone for each specified language. The languages are: ${languages
                 .map((language) => `"${language}"`)
                 .join(", ")}
 
               Return a JSON object in the following shape: 
               {
-                "productName": string,
+                "productNames": {[language: string]: string},
                 "descriptions": [{language: string, description: string},...]
               }
 
-              For the Thai description, please ensure it is detailed, culturally appropriate, and uses Thai-specific terminology where relevant. For other languages, provide standard descriptions.
+              For each language, please ensure the product name and description are detailed, culturally appropriate, and use language-specific terminology where relevant.
 
               It is very important for my career that you follow these instructions exactly. PLEASE ONLY RETURN JSON, NOTHING ELSE.
               `,
@@ -71,12 +71,12 @@ export async function POST(req: Request) {
 
     rawResponse = res.choices[0].message?.content;
     const parsedResponse = JSON.parse(rawResponse || "{}");
-    productName = parsedResponse.productName;
+    productNames = parsedResponse.productNames;
     descriptions = parsedResponse.descriptions;
-    console.log({ rawResponse, productName, descriptions });
+    console.log({ rawResponse, productNames, descriptions });
   } catch (error) {
     const productResponseSchema = z.object({
-      productName: z.string().describe("the name of the product"),
+      productNames: z.record(z.string()).describe("the names of the product in different languages"),
       descriptions: z.array(
         z.object({
           language: z.string().describe("the language specified"),
@@ -109,12 +109,12 @@ export async function POST(req: Request) {
     });
 
     const parsedExtract = JSON.parse(extract?.choices?.[0]?.message?.content || "{}");
-    productName = parsedExtract.productName;
+    productNames = parsedExtract.productNames;
     descriptions = parsedExtract.descriptions;
     console.log(error);
   }
 
-  return Response.json({ productName, descriptions });
+  return Response.json({ productNames, descriptions });
 }
 
 export const runtime = "edge";

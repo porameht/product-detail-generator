@@ -52,13 +52,12 @@ export default function Page() {
   const [image, setImage] = useState<string | null>(null);
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   const [descriptions, setDescriptions] = useState<
-    { language: string; description: string }[]
+    { language: string; description: string; productName: string }[]
   >([]);
   const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
   const [model, setModel] = useState(models[0].value);
   const [length, setLength] = useState(lengths[0].value);
   const [tone, setTone] = useState(tones[0].value);
-  const [productName, setProductName] = useState<string>("");
 
   const { uploadToS3 } = useS3Upload();
 
@@ -90,8 +89,10 @@ export default function Page() {
     const data = await response.json();
     console.log(data);
 
-    setDescriptions(data.descriptions);
-    setProductName(data.productName);
+    setDescriptions(data.descriptions.map((desc: { language: string; description: string }) => ({
+      ...desc,
+      productName: data.productNames[desc.language] || data.productName
+    })));
     setStatus("success");
   };
 
@@ -298,12 +299,12 @@ export default function Page() {
       ) : (
         <Card className="mx-auto w-full max-w-xl p-6">
           <div className="space-y-4">
-            <h3 className="text-xl font-semibold">Generated Descriptions & Product Name</h3>
+            <h3 className="text-xl font-semibold">Generated Descriptions & Product Names</h3>
             {status === "loading" ? (
               <div className="space-y-8">
-                <Skeleton className="h-8 w-[250px]" />
                 {selectedLanguages.map((language) => (
                   <div className="flex flex-col space-y-3" key={language}>
+                    <Skeleton className="h-8 w-[250px]" />
                     <Skeleton className="h-8 w-[250px]" />
                     <Skeleton
                       className={`${
@@ -319,15 +320,12 @@ export default function Page() {
               </div>
             ) : (
               <>
-                <div>
-                  <h4 className="font-medium">Product Name</h4>
-                  <p className="mt-1 text-sm text-gray-600">{productName}</p>
-                </div>
-                {descriptions.map(({ language, description }) => (
+                {descriptions.map(({ language, description, productName }) => (
                   <div key={language}>
                     <h4 className="font-medium">
                       {languages.find((l) => l.code === language)?.name}
                     </h4>
+                    <p className="mt-1 text-sm font-semibold">Product Name: {productName}</p>
                     <p className="mt-1 text-sm text-gray-600">{description}</p>
                   </div>
                 ))}
