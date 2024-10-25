@@ -21,6 +21,7 @@ const languages = [
   { code: "ko", name: "Korean" },
   { code: "zh", name: "Chinese" },
   { code: "pt", name: "Portuguese" },
+  { code: "th", name: "Thai" },
 ];
 
 const models = [
@@ -40,6 +41,13 @@ const lengths = [
   { value: "long", label: "Long" },
 ];
 
+const tones = [
+  { value: "professional", label: "Professional" },
+  { value: "casual", label: "Casual" },
+  { value: "enthusiastic", label: "Enthusiastic" },
+  { value: "formal", label: "Formal" },
+];
+
 export default function Page() {
   const [image, setImage] = useState<string | null>(null);
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
@@ -49,6 +57,8 @@ export default function Page() {
   const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
   const [model, setModel] = useState(models[0].value);
   const [length, setLength] = useState(lengths[0].value);
+  const [tone, setTone] = useState(tones[0].value);
+  const [productName, setProductName] = useState<string>("");
 
   const { uploadToS3 } = useS3Upload();
 
@@ -60,6 +70,7 @@ export default function Page() {
     const { url } = await uploadToS3(file);
     setImage(url);
   };
+
   const handleSubmit = async () => {
     if (!image || selectedLanguages.length === 0) return;
 
@@ -72,13 +83,15 @@ export default function Page() {
         imageUrl: image,
         model,
         length,
+        tone,
       }),
     });
 
-    const descriptions = await response.json();
-    console.log(descriptions);
+    const data = await response.json();
+    console.log(data);
 
-    setDescriptions(descriptions);
+    setDescriptions(data.descriptions);
+    setProductName(data.productName);
     setStatus("success");
   };
 
@@ -86,11 +99,11 @@ export default function Page() {
     <div className="mx-auto my-12 grid max-w-7xl grid-cols-1 gap-8 px-4 lg:grid-cols-2">
       <Card className="mx-auto w-full max-w-xl p-6">
         <h2 className="mb-1 text-center text-2xl font-bold">
-          Product Description Generator
+          Product Description & Name Generator
         </h2>
         <p className="mb-6 text-balance text-center text-sm text-gray-500">
           Upload an image of your product to generate descriptions in multiple
-          languages.
+          languages and a product name.
         </p>
         <div>
           <div
@@ -223,6 +236,31 @@ export default function Page() {
                 ))}
               </ToggleGroup>
             </div>
+            <div className="grid grid-cols-2 py-7">
+              <div>
+                <p className="text-sm font-bold text-gray-900">Tone</p>
+                <p className="mt-2 text-sm text-gray-500">
+                  Select the tone for the product descriptions.
+                </p>
+              </div>
+              <ToggleGroup
+                type="single"
+                className="mx-auto flex flex-wrap justify-start gap-2"
+                onValueChange={setTone}
+                value={tone}
+              >
+                {tones.map((toneOption) => (
+                  <ToggleGroupItem
+                    variant="outline"
+                    key={toneOption.value}
+                    value={toneOption.value}
+                    className="rounded-full px-3 py-1 text-xs font-medium shadow-none data-[state=on]:bg-black data-[state=on]:text-white"
+                  >
+                    {toneOption.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
           </div>
 
           <div className="mt-10 text-right">
@@ -254,15 +292,16 @@ export default function Page() {
       {status === "idle" ? (
         <div className="flex h-64 flex-col items-center justify-center rounded-xl bg-gray-50 lg:h-auto">
           <p className="text-center text-xl text-gray-500">
-            See your generated descriptions here
+            See your generated descriptions here and product name.
           </p>
         </div>
       ) : (
         <Card className="mx-auto w-full max-w-xl p-6">
           <div className="space-y-4">
-            <h3 className="text-xl font-semibold">Generated Descriptions</h3>
+            <h3 className="text-xl font-semibold">Generated Descriptions & Product Name</h3>
             {status === "loading" ? (
               <div className="space-y-8">
+                <Skeleton className="h-8 w-[250px]" />
                 {selectedLanguages.map((language) => (
                   <div className="flex flex-col space-y-3" key={language}>
                     <Skeleton className="h-8 w-[250px]" />
@@ -280,6 +319,10 @@ export default function Page() {
               </div>
             ) : (
               <>
+                <div>
+                  <h4 className="font-medium">Product Name</h4>
+                  <p className="mt-1 text-sm text-gray-600">{productName}</p>
+                </div>
                 {descriptions.map(({ language, description }) => (
                   <div key={language}>
                     <h4 className="font-medium">
