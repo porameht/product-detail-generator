@@ -43,18 +43,15 @@ export async function POST(req: Request) {
           content: [
             {
               type: "text",
-              text: `Given this product image, return JSON with a product name and Amazon-like ${length} sales product descriptions in a ${tone} tone for each of these languages:${languages
-                .map((language) => `"${language}"`)
-                .join(", ")}
+              text: `Given this product image, return JSON with a product name and Amazon-like ${length} sales product descriptions in a ${tone} tone for the following languages: ${languages.join(", ")}.
 
-              Return a JSON object in the following shape: 
+              Return a JSON object in the following shape:
               {
                 "productName": string,
-                "descriptions": [{language: string, description: string},...]
+                "descriptions": [{ language: string, description: string }, ...]
               }
 
-              It is very important for my career that you follow these instructions exactly. PLEASE ONLY RETURN JSON, NOTHING ELSE.
-              `,
+              Please only return valid JSON, with no additional text.`,
             },
             {
               type: "image_url",
