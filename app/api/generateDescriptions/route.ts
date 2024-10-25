@@ -43,15 +43,20 @@ export async function POST(req: Request) {
           content: [
             {
               type: "text",
-              text: `Given this product image, return JSON with a product name and Amazon-like ${length} sales product descriptions in a ${tone} tone for the following languages: ${languages.join(", ")}.
+              text: `Given this product image, return JSON with a product name and Amazon-like ${length} sales product descriptions in a ${tone} tone. Focus primarily on Thai language, but if other languages are specified, include them as well. The languages are: ${languages
+                .map((language) => `"${language}"`)
+                .join(", ")}
 
-              Return a JSON object in the following shape:
+              Return a JSON object in the following shape: 
               {
                 "productName": string,
-                "descriptions": [{ language: string, description: string }, ...]
+                "descriptions": [{language: string, description: string},...]
               }
 
-              Please only return valid JSON, with no additional text.`,
+              For the Thai description, please ensure it is detailed, culturally appropriate, and uses Thai-specific terminology where relevant. For other languages, provide standard descriptions.
+
+              It is very important for my career that you follow these instructions exactly. PLEASE ONLY RETURN JSON, NOTHING ELSE.
+              `,
             },
             {
               type: "image_url",

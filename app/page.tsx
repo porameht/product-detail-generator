@@ -12,6 +12,7 @@ import { useS3Upload } from "next-s3-upload";
 import { useState } from "react";
 
 const languages = [
+  { code: "th", name: "Thai" },
   { code: "en", name: "English" },
   { code: "es", name: "Spanish" },
   { code: "fr", name: "French" },
@@ -20,8 +21,7 @@ const languages = [
   { code: "ja", name: "Japanese" },
   { code: "ko", name: "Korean" },
   { code: "zh", name: "Chinese" },
-  { code: "pt", name: "Portuguese" },
-  { code: "th", name: "Thai" },
+  { code: "pt", name: "Portuguese" }
 ];
 
 const models = [
