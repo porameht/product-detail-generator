@@ -43,7 +43,7 @@ export async function POST(req: Request) {
           content: [
             {
               type: "text",
-              text: `Given this product image, return JSON with product names and Amazon-like ${length} sales product descriptions in a ${tone} tone for each specified language. The languages are: ${languages
+              text: `Given this product image, return JSON of a Amazon-like ${length} sales product description and product name in a ${tone} tonein each of these languages. ${languages
                 .map((language) => `"${language}"`)
                 .join(", ")}
 
@@ -52,9 +52,6 @@ export async function POST(req: Request) {
                 "productNames": {[language: string]: string},
                 "descriptions": [{language: string, description: string},...]
               }
-
-              For each language, please ensure the product name and description are detailed, culturally appropriate, and use language-specific terminology where relevant.
-
               It is very important for my career that you follow these instructions exactly. PLEASE ONLY RETURN JSON, NOTHING ELSE.
               `,
             },
