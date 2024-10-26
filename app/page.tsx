@@ -26,13 +26,20 @@ const languages = [
 
 const models = [
   {
+    value: "gpt-4o-mini",
+    label: "GPT-4o Mini",
+    provider: "openai",
+  },
+  {
     value: "meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo",
     label: "Llama 3.2 11B",
+    provider: "together",
   },
   {
     value: "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",
     label: "Llama 3.2 90B",
-  },
+    provider: "together",
+  }
 ];
 
 const lengths = [
@@ -72,10 +79,15 @@ export default function Page() {
 
   const handleSubmit = async () => {
     if (!image || selectedLanguages.length === 0) return;
-
+  
     setStatus("loading");
-
-    const response = await fetch("/api/generateDescriptions", {
+  
+    const selectedModel = models.find((m) => m.value === model);
+    const endpoint = selectedModel?.provider === "openai" 
+      ? "/api/openai"
+      : "/api/together";
+  
+    const response = await fetch(endpoint, {
       method: "POST",
       body: JSON.stringify({
         languages: selectedLanguages,
@@ -85,10 +97,10 @@ export default function Page() {
         tone,
       }),
     });
-
+  
     const data = await response.json();
     console.log(data);
-
+  
     setDescriptions(data.descriptions.map((desc: { language: string; description: string }) => ({
       ...desc,
       productName: data.productNames[desc.language] || data.productName
@@ -100,7 +112,7 @@ export default function Page() {
     <div className="mx-auto my-12 grid max-w-7xl grid-cols-1 gap-8 px-4 lg:grid-cols-2">
       <Card className="mx-auto w-full max-w-xl p-6">
         <h2 className="mb-1 text-center text-2xl font-bold">
-          Product Description & Name Generator
+          💅 Product Description & Name Generator
         </h2>
         <p className="mb-6 text-balance text-center text-sm text-gray-500">
           Upload an image of your product to generate descriptions in multiple
