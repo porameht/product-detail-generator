@@ -163,6 +163,7 @@ export default function Page() {
     if (!image || !backgroundPrompt) return;
 
     setIsProcessing(true);
+    setReplacedBgImage(null); // Reset the image to show skeleton
     try {
       const response = await fetch("/api/replace-background", {
         method: "POST",
@@ -450,16 +451,20 @@ export default function Page() {
                 ))}
               </>
             )}
-            {replacedBgImage && (
+            {(replacedBgImage || isProcessing) && (
               <div className="mt-4">
                 <h4 className="text-lg font-semibold mb-2">New Background Image</h4>
-                <img 
-                  src={replacedBgImage} 
-                  alt="Product with new background" 
-                  className="rounded-lg" 
-                  loading="lazy"
-                  decoding="async"
-                />
+                {isProcessing ? (
+                  <Skeleton className="h-64 w-full rounded-lg" />
+                ) : (
+                  <img 
+                    src={replacedBgImage!} 
+                    alt="Product with new background" 
+                    className="rounded-lg" 
+                    loading="lazy"
+                    decoding="async"
+                  />
+                )}
                 <div className="mt-2 flex justify-between">
                   <Button
                     onClick={handleRegenerateBackground}
@@ -475,12 +480,6 @@ export default function Page() {
                     )}
                   </Button>
                 </div>
-              </div>
-            )}
-            {isProcessing && !replacedBgImage && (
-              <div className="mt-4 flex items-center justify-center">
-                <Spinner className="h-8 w-8" />
-                <span className="ml-2">Processing request...</span>
               </div>
             )}
           </div>
