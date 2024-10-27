@@ -15,13 +15,13 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "AI-Powered Product Name & Description Generator",
-  description: "Generate compelling product names and descriptions in multiple languages using AI",
-  keywords: "AI, product descriptions, e-commerce, multilingual, OpenAI, Llama 3.2",
+  title: "AI-Powered Product Name, Description & Image Generator",
+  description: "Generate compelling product names, descriptions, and background replacements in multiple languages using AI",
+  keywords: "AI, product descriptions, e-commerce, multilingual, OpenAI, Llama 3.2, background replacement",
   authors: [{ name: "fr4nk", url: "https://fr4nk.xyz" }],
   openGraph: {
-    title: "AI-Powered Product Name & Description Generator",
-    description: "Create engaging product content in multiple languages",
+    title: "AI-Powered Product Name, Description & Image Generator",
+    description: "Create engaging product content and images in multiple languages",
     type: "website",
     url: "https://product-detail-generator.vercel.app",
     images: [
@@ -29,14 +29,14 @@ export const metadata: Metadata = {
         url: "https://product-detail-generator.vercel.app/og-image.png",
         width: 1200,
         height: 630,
-        alt: "AI-Powered Product Name & Description Generator",
+        alt: "AI-Powered Product Name, Description & Image Generator",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "AI-Powered Product Name & Description Generator",
-    description: "Create engaging product content in multiple languages",
+    title: "AI-Powered Product Name, Description & Image Generator",
+    description: "Create engaging product content and images in multiple languages",
     images: ["https://product-detail-generator.vercel.app/twitter-image.png"],
   },
 };

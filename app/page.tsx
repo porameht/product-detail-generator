@@ -10,6 +10,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Upload, X } from "lucide-react";
 import { useS3Upload } from "next-s3-upload";
 import { useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const languages = [
   { code: "th", name: "Thai" },
@@ -55,6 +56,19 @@ const tones = [
   { value: "formal", label: "Formal" },
 ];
 
+const promptBackgrounds = [
+  { value: "the sun", label: "The Sun" },
+  { value: "an old castle", label: "Old Castle" },
+  { value: "a tropical beach", label: "Tropical Beach" },
+  { value: "a snowy mountain", label: "Snowy Mountain" },
+  { value: "a bustling city", label: "Bustling City" },
+  { value: "a serene lake", label: "Serene Lake" },
+  { value: "a lush forest", label: "Lush Forest" },
+  { value: "a desert oasis", label: "Desert Oasis" },
+  { value: "a starry night sky", label: "Starry Night Sky" },
+  { value: "an underwater coral reef", label: "Underwater Coral Reef" },
+];
+
 export default function Page() {
   const [image, setImage] = useState<string | null>(null);
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
@@ -65,6 +79,9 @@ export default function Page() {
   const [model, setModel] = useState(models[0].value);
   const [length, setLength] = useState(lengths[0].value);
   const [tone, setTone] = useState(tones[0].value);
+  const [replacedBgImage, setReplacedBgImage] = useState<string | null>(null);
+  const [isReplacingBackground, setIsReplacingBackground] = useState(false);
+  const [backgroundPrompt, setBackgroundPrompt] = useState("");
 
   const { uploadToS3 } = useS3Upload();
 
@@ -108,15 +125,47 @@ export default function Page() {
     setStatus("success");
   };
 
+  const handleReplaceBackground = async () => {
+    if (!image) return;
+
+    setIsReplacingBackground(true);
+    try {
+      const response = await fetch("/api/replace-background", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageUrl: image,
+          prompt: backgroundPrompt,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to replace background");
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setReplacedBgImage(data.imageUrl);
+      } else {
+        console.error("Error replacing background:", data.error);
+      }
+    } catch (error) {
+      console.error("Error replacing background:", error);
+    } finally {
+      setIsReplacingBackground(false);
+    }
+  };
+
   return (
     <div className="mx-auto my-12 grid max-w-7xl grid-cols-1 gap-8 px-4 lg:grid-cols-2">
       <Card className="mx-auto w-full max-w-xl p-6">
         <h2 className="mb-1 text-center text-2xl font-bold">
-          💅 Product Description & Name Generator
+          🎨 AI Product Description & Image Generator
         </h2>
         <p className="mb-6 text-balance text-center text-sm text-gray-500">
-          Upload an image of your product to generate descriptions in multiple
-          languages and a product name.
+          Upload a product image to generate multilingual descriptions, product names, and background replacements.
         </p>
         <div>
           <div
@@ -173,9 +222,9 @@ export default function Page() {
           <div className="divide-y">
             <div className="grid grid-cols-2 py-7">
               <div>
-                <p className="text-sm font-bold text-gray-900">Model</p>
+                <p className="text-sm font-bold text-gray-900">AI Model</p>
                 <p className="mt-2 text-sm text-gray-500">
-                  Select the Llama 3.2 vision model you want to use.
+                  Choose the AI model for generating descriptions.
                 </p>
               </div>
               <ToggleGroup
@@ -198,9 +247,9 @@ export default function Page() {
             </div>
             <div className="grid grid-cols-2 py-7">
               <div>
-                <p className="text-sm font-bold text-gray-900">Languages</p>
+                <p className="text-sm font-bold text-gray-900">Target Languages</p>
                 <p className="mt-2 text-sm text-gray-500">
-                  Choose up to 3 languages for the product descriptions.
+                  Select up to 3 languages for product descriptions.
                 </p>
               </div>
               <ToggleGroup
@@ -226,9 +275,9 @@ export default function Page() {
             </div>
             <div className="grid grid-cols-2 py-7">
               <div>
-                <p className="text-sm font-bold text-gray-900">Length</p>
+                <p className="text-sm font-bold text-gray-900">Description Length</p>
                 <p className="mt-2 text-sm text-gray-500">
-                  Select the length of the product descriptions.
+                  Choose the desired length for product descriptions.
                 </p>
               </div>
               <ToggleGroup
@@ -251,9 +300,9 @@ export default function Page() {
             </div>
             <div className="grid grid-cols-2 py-7">
               <div>
-                <p className="text-sm font-bold text-gray-900">Tone</p>
+                <p className="text-sm font-bold text-gray-900">Description Tone</p>
                 <p className="mt-2 text-sm text-gray-500">
-                  Select the tone for the product descriptions.
+                  Select the tone for product descriptions.
                 </p>
               </div>
               <ToggleGroup
@@ -289,7 +338,7 @@ export default function Page() {
                   status === "loading" ? "opacity-0" : "opacity-100"
                 } whitespace-pre-wrap text-center font-semibold leading-none tracking-tight text-white dark:from-white dark:to-slate-900/10`}
               >
-                Generate descriptions
+                Generate Content
               </span>
 
               {status === "loading" && (
@@ -305,13 +354,13 @@ export default function Page() {
       {status === "idle" ? (
         <div className="flex h-64 flex-col items-center justify-center rounded-xl bg-gray-50 lg:h-auto">
           <p className="text-center text-xl text-gray-500">
-            See your generated descriptions here and product name.
+            Generated content will appear here.
           </p>
         </div>
       ) : (
         <Card className="mx-auto w-full max-w-xl p-6">
           <div className="space-y-4">
-            <h3 className="text-xl font-semibold">Generated Descriptions & Product Names</h3>
+            <h3 className="text-xl font-semibold">AI-Generated Content</h3>
             {status === "loading" ? (
               <div className="space-y-8">
                 {selectedLanguages.map((language) => (
@@ -343,6 +392,78 @@ export default function Page() {
                 ))}
               </>
             )}
+            <div className="mt-6">
+              <h4 className="text-lg font-semibold">Background Replacement</h4>
+              <div className="flex items-center space-x-2 mt-2">
+                <input
+                  type="text"
+                  value={backgroundPrompt}
+                  onChange={(e) => setBackgroundPrompt(e.target.value)}
+                  placeholder="Describe new background"
+                  className="flex-grow rounded-md border p-2"
+                />
+                <Select onValueChange={(value) => setBackgroundPrompt(value)}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Quick select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {promptBackgrounds.map((bg) => (
+                      <SelectItem key={bg.value} value={bg.value}>
+                        {bg.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={handleReplaceBackground}
+                disabled={isReplacingBackground || !backgroundPrompt}
+                className="mt-2"
+              >
+                {isReplacingBackground ? (
+                  <>
+                    <Spinner className="mr-2 h-4 w-4" />
+                    Processing...
+                  </>
+                ) : (
+                  "Replace Background"
+                )}
+              </Button>
+              {isReplacingBackground && (
+                <div className="mt-4 flex items-center justify-center">
+                  <Spinner className="h-8 w-8" />
+                  <span className="ml-2">Creating new image...</span>
+                </div>
+              )}
+              {replacedBgImage ? (
+                <div className="mt-4">
+                  <img 
+                    src={replacedBgImage} 
+                    alt="Product with new background" 
+                    className="rounded-lg" 
+                    onLoad={() => setIsReplacingBackground(false)}
+                  />
+                  <Button
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = replacedBgImage;
+                      link.download = 'product-with-new-background.jpg';
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                    className="mt-2"
+                  >
+                    Download Image
+                  </Button>
+                </div>
+              ) : isReplacingBackground && (
+                <div className="mt-4 flex items-center justify-center">
+                  <Spinner className="h-8 w-8" />
+                  <span className="ml-2">Creating new image...</span>
+                </div>
+              )}
+            </div>
           </div>
         </Card>
       )}

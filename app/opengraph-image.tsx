@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt = 'AI-Powered Product Name & Description Generator'
+export const alt = 'AI-Powered Product Name, Description & Image Generator'
 export const size = {
   width: 1200,
   height: 630,
@@ -37,7 +37,7 @@ export default async function Image() {
               marginRight: '20px',
             }}
           >
-            💅
+            🎨
           </span>
         </div>
         <h1
@@ -49,7 +49,7 @@ export default async function Image() {
             color: 'black',
           }}
         >
-          Product Name & Description Generator
+          AI Product Description & Image Generator
         </h1>
         <p
           style={{
@@ -59,7 +59,7 @@ export default async function Image() {
             maxWidth: '800px',
           }}
         >
-          Generate compelling product names and descriptions in multiple languages using AI
+          Generate multilingual product names, descriptions, and background replacements using AI
         </p>
         <div
           style={{
@@ -81,7 +81,7 @@ export default async function Image() {
               fontSize: '24px',
             }}
           >
-            Powered by OpenAI & Llama 3.2 Vision
+            Powered by OpenAI, Llama 3.2 Vision & Replicate
           </div>
         </div>
       </div>
