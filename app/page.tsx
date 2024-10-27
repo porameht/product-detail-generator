@@ -80,7 +80,7 @@ export default function Page() {
   const [length, setLength] = useState(lengths[0].value);
   const [tone, setTone] = useState(tones[0].value);
   const [replacedBgImage, setReplacedBgImage] = useState<string | null>(null);
-  const [isReplacingBackground, setIsReplacingBackground] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [backgroundPrompt, setBackgroundPrompt] = useState("");
 
   const { uploadToS3 } = useS3Upload();
@@ -97,38 +97,72 @@ export default function Page() {
   const handleSubmit = async () => {
     if (!image || selectedLanguages.length === 0) return;
   
+    setIsProcessing(true);
     setStatus("loading");
   
-    const selectedModel = models.find((m) => m.value === model);
-    const endpoint = selectedModel?.provider === "openai" 
-      ? "/api/openai"
-      : "/api/together";
-  
-    const response = await fetch(endpoint, {
-      method: "POST",
-      body: JSON.stringify({
-        languages: selectedLanguages,
-        imageUrl: image,
-        model,
-        length,
-        tone,
-      }),
-    });
-  
-    const data = await response.json();
-    console.log(data);
-  
-    setDescriptions(data.descriptions.map((desc: { language: string; description: string }) => ({
-      ...desc,
-      productName: data.productNames[desc.language] || data.productName
-    })));
-    setStatus("success");
+    try {
+      // Generate content
+      const selectedModel = models.find((m) => m.value === model);
+      const endpoint = selectedModel?.provider === "openai" 
+        ? "/api/openai"
+        : "/api/together";
+    
+      const contentResponse = await fetch(endpoint, {
+        method: "POST",
+        body: JSON.stringify({
+          languages: selectedLanguages,
+          imageUrl: image,
+          model,
+          length,
+          tone,
+        }),
+      });
+    
+      const contentData = await contentResponse.json();
+      
+      setDescriptions(contentData.descriptions.map((desc: { language: string; description: string }) => ({
+        ...desc,
+        productName: contentData.productNames[desc.language] || contentData.productName
+      })));
+
+      // Replace background if prompt is provided
+      if (backgroundPrompt) {
+        const bgResponse = await fetch("/api/replace-background", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            imageUrl: image,
+            prompt: backgroundPrompt,
+          }),
+        });
+
+        if (!bgResponse.ok) {
+          throw new Error("Failed to replace background");
+        }
+
+        const bgData = await bgResponse.json();
+        if (bgData.success) {
+          setReplacedBgImage(bgData.imageUrl);
+        } else {
+          console.error("Error replacing background:", bgData.error);
+        }
+      }
+
+      setStatus("success");
+    } catch (error) {
+      console.error("Error processing request:", error);
+      setStatus("idle");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const handleReplaceBackground = async () => {
-    if (!image) return;
+  const handleRegenerateBackground = async () => {
+    if (!image || !backgroundPrompt) return;
 
-    setIsReplacingBackground(true);
+    setIsProcessing(true);
     try {
       const response = await fetch("/api/replace-background", {
         method: "POST",
@@ -154,7 +188,7 @@ export default function Page() {
     } catch (error) {
       console.error("Error replacing background:", error);
     } finally {
-      setIsReplacingBackground(false);
+      setIsProcessing(false);
     }
   };
 
@@ -323,25 +357,49 @@ export default function Page() {
                 ))}
               </ToggleGroup>
             </div>
+            <div className="py-7">
+              <h4 className="text-sm font-bold text-gray-900 mb-2">Background Replacement</h4>
+              <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-x-2 sm:space-y-0">
+                <input
+                  type="text"
+                  value={backgroundPrompt}
+                  onChange={(e) => setBackgroundPrompt(e.target.value)}
+                  placeholder="Describe new background"
+                  className="w-full rounded-md border p-2 sm:flex-grow"
+                />
+                <Select onValueChange={(value) => setBackgroundPrompt(value)}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Quick select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {promptBackgrounds.map((bg) => (
+                      <SelectItem key={bg.value} value={bg.value}>
+                        {bg.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
           <div className="mt-10 text-right">
             <Button
               onClick={handleSubmit}
               disabled={
-                !image || selectedLanguages.length === 0 || status === "loading"
+                !image || selectedLanguages.length === 0 || isProcessing
               }
               className="relative"
             >
               <span
                 className={`${
-                  status === "loading" ? "opacity-0" : "opacity-100"
+                  isProcessing ? "opacity-0" : "opacity-100"
                 } whitespace-pre-wrap text-center font-semibold leading-none tracking-tight text-white dark:from-white dark:to-slate-900/10`}
               >
-                Generate Content
+                🪄 Generate
               </span>
 
-              {status === "loading" && (
+              {isProcessing && (
                 <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
                   <Spinner className="size-4" />
                 </span>
@@ -374,7 +432,7 @@ export default function Page() {
                           : length === "medium"
                             ? "h-20"
                             : "h-32"
-                      }`}
+                      } w-full`}
                     />
                   </div>
                 ))}
@@ -392,78 +450,39 @@ export default function Page() {
                 ))}
               </>
             )}
-            <div className="mt-6">
-              <h4 className="text-lg font-semibold">Background Replacement</h4>
-              <div className="flex items-center space-x-2 mt-2">
-                <input
-                  type="text"
-                  value={backgroundPrompt}
-                  onChange={(e) => setBackgroundPrompt(e.target.value)}
-                  placeholder="Describe new background"
-                  className="flex-grow rounded-md border p-2"
+            {replacedBgImage && (
+              <div className="mt-4">
+                <h4 className="text-lg font-semibold mb-2">New Background Image</h4>
+                <img 
+                  src={replacedBgImage} 
+                  alt="Product with new background" 
+                  className="rounded-lg" 
+                  loading="lazy"
+                  decoding="async"
                 />
-                <Select onValueChange={(value) => setBackgroundPrompt(value)}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Quick select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {promptBackgrounds.map((bg) => (
-                      <SelectItem key={bg.value} value={bg.value}>
-                        {bg.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button
-                onClick={handleReplaceBackground}
-                disabled={isReplacingBackground || !backgroundPrompt}
-                className="mt-2"
-              >
-                {isReplacingBackground ? (
-                  <>
-                    <Spinner className="mr-2 h-4 w-4" />
-                    Processing...
-                  </>
-                ) : (
-                  "Replace Background"
-                )}
-              </Button>
-              {isReplacingBackground && (
-                <div className="mt-4 flex items-center justify-center">
-                  <Spinner className="h-8 w-8" />
-                  <span className="ml-2">Creating new image...</span>
-                </div>
-              )}
-              {replacedBgImage ? (
-                <div className="mt-4">
-                  <img 
-                    src={replacedBgImage} 
-                    alt="Product with new background" 
-                    className="rounded-lg" 
-                    onLoad={() => setIsReplacingBackground(false)}
-                  />
+                <div className="mt-2 flex justify-between">
                   <Button
-                    onClick={() => {
-                      const link = document.createElement('a');
-                      link.href = replacedBgImage;
-                      link.download = 'product-with-new-background.jpg';
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                    }}
-                    className="mt-2"
+                    onClick={handleRegenerateBackground}
+                    disabled={isProcessing}
                   >
-                    Download Image
+                    {isProcessing ? (
+                      <>
+                        <Spinner className="mr-2 h-4 w-4" />
+                        Processing...
+                      </>
+                    ) : (
+                      "Regenerate Background"
+                    )}
                   </Button>
                 </div>
-              ) : isReplacingBackground && (
-                <div className="mt-4 flex items-center justify-center">
-                  <Spinner className="h-8 w-8" />
-                  <span className="ml-2">Creating new image...</span>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
+            {isProcessing && !replacedBgImage && (
+              <div className="mt-4 flex items-center justify-center">
+                <Spinner className="h-8 w-8" />
+                <span className="ml-2">Processing request...</span>
+              </div>
+            )}
           </div>
         </Card>
       )}
