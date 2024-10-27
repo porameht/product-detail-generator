@@ -101,53 +101,18 @@ export default function Page() {
     setStatus("loading");
   
     try {
-      // Generate content
-      const selectedModel = models.find((m) => m.value === model);
-      const endpoint = selectedModel?.provider === "openai" 
-        ? "/api/openai"
-        : "/api/together";
-    
-      const contentResponse = await fetch(endpoint, {
-        method: "POST",
-        body: JSON.stringify({
-          languages: selectedLanguages,
-          imageUrl: image,
-          model,
-          length,
-          tone,
-        }),
-      });
-    
-      const contentData = await contentResponse.json();
-      
+      const [contentData, bgData] = await Promise.all([
+        generateContent(),
+        backgroundPrompt ? replaceBackground() : null
+      ]);
+
       setDescriptions(contentData.descriptions.map((desc: { language: string; description: string }) => ({
         ...desc,
         productName: contentData.productNames[desc.language] || contentData.productName
       })));
 
-      // Replace background if prompt is provided
-      if (backgroundPrompt) {
-        const bgResponse = await fetch("/api/replace-background", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            imageUrl: image,
-            prompt: backgroundPrompt,
-          }),
-        });
-
-        if (!bgResponse.ok) {
-          throw new Error("Failed to replace background");
-        }
-
-        const bgData = await bgResponse.json();
-        if (bgData.success) {
-          setReplacedBgImage(bgData.imageUrl);
-        } else {
-          console.error("Error replacing background:", bgData.error);
-        }
+      if (bgData && bgData.success) {
+        setReplacedBgImage(bgData.imageUrl);
       }
 
       setStatus("success");
@@ -159,28 +124,38 @@ export default function Page() {
     }
   };
 
+  const generateContent = async () => {
+    const selectedModel = models.find((m) => m.value === model);
+    const endpoint = selectedModel?.provider === "openai" ? "/api/openai" : "/api/together";
+    
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ languages: selectedLanguages, imageUrl: image, model, length, tone }),
+    });
+
+    if (!response.ok) throw new Error("Failed to generate content");
+    return response.json();
+  };
+
+  const replaceBackground = async () => {
+    const response = await fetch("/api/replace-background", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageUrl: image, prompt: backgroundPrompt }),
+    });
+
+    if (!response.ok) throw new Error("Failed to replace background");
+    return response.json();
+  };
+
   const handleRegenerateBackground = async () => {
     if (!image || !backgroundPrompt) return;
 
     setIsProcessing(true);
     setReplacedBgImage(null); // Reset the image to show skeleton
     try {
-      const response = await fetch("/api/replace-background", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          imageUrl: image,
-          prompt: backgroundPrompt,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to replace background");
-      }
-
-      const data = await response.json();
+      const data = await replaceBackground();
       if (data.success) {
         setReplacedBgImage(data.imageUrl);
       } else {
